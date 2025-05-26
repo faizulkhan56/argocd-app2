@@ -1,3 +1,4 @@
+name: Deploy via ArgoCD
 on:
   push:
     branches: [main]
