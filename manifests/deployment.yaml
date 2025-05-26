@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: argocd-test2
-          image: faizul56/argocd-app2:559905c
+          image: faizul56/argocd-app2:371cda3
           ports:
             - containerPort: 3003
