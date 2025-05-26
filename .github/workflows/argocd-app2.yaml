@@ -61,6 +61,6 @@ jobs:
 
       - name: Final Message
         run: |
-          echo "✅ Build pipeline completed."
+          echo "✅ Build pipeline completed..."
           echo "✅ ArgoCD ApplicationSet will detect changes on ci-artifacts and deploy automatically."
 
