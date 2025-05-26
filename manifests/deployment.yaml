@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-test2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-test2
+  template:
+    metadata:
+      labels:
+        app: argocd-test2
+    spec:
+      containers:
+        - name: argocd-test2
+          image: faizul56/argocd-app2:REPLACEME
+          ports:
+            - containerPort: 3003
