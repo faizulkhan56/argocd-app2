@@ -1,22 +1,28 @@
-name: Build and Deploy argocd-App2
+name: CI/CD - Build & Deploy via ArgoCD ApplicationSet
 
 on:
   push:
     branches: [main]
 
 env:
+  APP_NAME: argocd-app2
   DOCKER_REPO: faizul56/argocd-app2
   IMAGE_PATH: manifests/deployment.yaml
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout app repo
         uses: actions/checkout@v3
 
-      - name: Set commit SHA
+      - name: Install Docker & JQ (if needed)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Get short commit SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
@@ -31,15 +37,24 @@ jobs:
           docker build -t $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} .
           docker push $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}
 
-      - name: Update image in manifests/deployment.yaml
+      - name: Clone app repo (argocd-app2)
+        run: |
+          git clone https://x-access-token:${{ secrets.GIT_PAT }}@github.com/faizulkhan56/argocd-app2.git
+          cd argocd-app2
+
+      - name: Update image tag in deployment manifest
+        working-directory: argocd-app2
         run: |
           sed -i "s|image: .*|image: $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}|" $IMAGE_PATH
 
-      - name: Commit and push updated manifest
+      - name: Commit and push manifest updates
+        working-directory: argocd-app2
+        env:
+          GIT_PAT: ${{ secrets.GIT_PAT }}
         run: |
           git config user.name "ci-bot"
           git config user.email "ci@github.com"
           git add $IMAGE_PATH
           git commit -m "Update image tag to ${{ steps.vars.outputs.sha_short }}"
-          git push
+          git push https://x-access-token:${GIT_PAT}@github.com/faizulkhan56/argocd-app2.git HEAD:main
 
