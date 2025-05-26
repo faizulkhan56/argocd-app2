@@ -1,0 +1,45 @@
+name: Build and Deploy argocd-App2
+
+on:
+  push:
+    branches: [main]
+
+env:
+  DOCKER_REPO: faizul56/argocd-app2
+  IMAGE_PATH: manifests/deployment.yaml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set commit SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Docker login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & push Docker image
+        run: |
+          docker build -t $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} .
+          docker push $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}
+
+      - name: Update image in manifests/deployment.yaml
+        run: |
+          sed -i "s|image: .*|image: $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}|" $IMAGE_PATH
+
+      - name: Commit and push updated manifest
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci@github.com"
+          git add $IMAGE_PATH
+          git commit -m "Update image tag to ${{ steps.vars.outputs.sha_short }}"
+          git push
+
