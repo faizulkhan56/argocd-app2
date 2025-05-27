@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 
 app.get('/', (req, res) => {
-  res.send('Hello from argo-app-test2 new test with notification updated');
+  res.send('Hello from argo-app-test2 new test with notification updated-new');
 });
 
 const PORT = 3003;
