@@ -17,7 +17,7 @@ jobs:
       - name: Checkout app repo
         uses: actions/checkout@v3
 
-      - name: Install Docker & JQ (if needed)
+      - name: Install Docker & jq
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
@@ -37,30 +37,27 @@ jobs:
           docker build -t $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} .
           docker push $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}
 
-      - name: Clone app repo (argocd-app2)
+      - name: Clone GitOps repo and update image tag
         run: |
           git clone https://x-access-token:${{ secrets.GIT_PAT }}@github.com/faizulkhan56/argocd-app2.git
           cd argocd-app2
+          
+          # Switch to branch or create if missing
+          git checkout ci-artifacts || git checkout -b ci-artifacts
 
-      - name: Update image tag in deployment manifest
-        working-directory: argocd-app2
-        run: |
+          # Pull latest changes (avoid non-fast-forward errors)
+          git pull --rebase origin ci-artifacts || echo "No rebase needed"
+
+          # Update image tag
           sed -i "s|image: .*|image: $DOCKER_REPO:${{ steps.vars.outputs.sha_short }}|" $IMAGE_PATH
 
-      - name: Commit and push manifest updates
-        working-directory: argocd-app2
-        env:
-          GIT_PAT: ${{ secrets.GIT_PAT }}
-        run: |
+          # Commit & push
           git config user.name "ci-bot"
           git config user.email "ci@github.com"
-          git checkout -b ci-artifacts || git checkout ci-artifacts
           git add $IMAGE_PATH
-          git commit -m "Update image tag to ${{ steps.vars.outputs.sha_short }}"
-          git push https://x-access-token:${GIT_PAT}@github.com/faizulkhan56/argocd-app2.git HEAD:ci-artifacts
+          git commit -m "Update image tag to ${{ steps.vars.outputs.sha_short }}" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GIT_PAT }}@github.com/faizulkhan56/argocd-app2.git ci-artifacts
 
-      - name: Finish Job with Expected Argo Notification
-        run: |
-          echo "✅ GitHub Actions pipeline completed."
-          echo "✅ Argo CD will now deploy the app and notify GitHub with sync status."
+      - name: Done
+        run: echo "✅ Deployment manifest updated and pushed to ci-artifacts branch"
 
